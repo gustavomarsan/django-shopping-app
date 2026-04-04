@@ -1,0 +1,43 @@
+* {
+      font-family: sans-serif;
+  }
+
+
+body {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+.encabezado  {
+    margin: 80px 1100px 10px 10px;
+    padding: 10px 10px ;
+    font-size: 25px;
+    color: white;
+    text-align: center;
+}
+
+.contenido  {
+    margin: 80px 1100px 10px 10px;
+    padding: 10px ;
+    text-align: center;
+    color: white;
+    border: 1px solid white;
+}   
+
+.pie {
+    margin: 20px 70px ;
+    padding: 10px 20px ;
+    text-align: center;
+    font-family: sans-serif;
+  }
+ 
+
+.fecha-col {
+    background-color: #ffffff;
+}
+
+.articulo-col {
+    width: 280px;
+    white-space: normal;
+    word-wrap: break-word;
+}

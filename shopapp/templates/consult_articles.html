@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %} CONSULTA DE PRECIO POR ARTICULO {%endblock%}
+
+{% block content %}
+
+{% load humanize %}
+
+<body class="p-4">
+  <h2>Catalogo de Articulos</h2>
+
+  <div class="row">
+    <div class="table responsive py-2 px-3" style="height: 550px; overflow: auto;">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th class="text-center" scope="col">Articulo</th>
+            <th class="text-center" scope="col"></th>
+            <th class="text-center" scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for article in articles %}
+          <tr>
+            <td class="text-left">{{article.name}}</td>
+            <td>
+                {% if article.photo %}
+                <img src="{{article.photo.url}}" alt="image here" width="50" height="50">
+                {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'article_purchases' article.id %}" > 
+                <button type="button" class="btn btn-primary">Historial</button>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+      </table>
+      <footer>
+
+      </footer>
+    </div>
+    <div class="col-2 text-center">
+    </div>
+  </div>
+
+  {% endblock %}
