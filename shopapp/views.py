@@ -6,6 +6,7 @@ from shopapp.models import Seller, Article, units, Purchase, Division, Family
 from shopapp.forms import ArticleForm, SellerForm, PurchaseForm
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
+from django.db.models import Sum, F
 
 # Create your views here.
 
@@ -188,6 +189,35 @@ def purchase_delete(request, pk):
 
     return redirect("purchase_list")
 
+
+
+# VERIFICACION
+def purchase_verification(request):
+    sellers = Seller.objects.order_by("name")
+    total = None
+    selected_date = None
+    selected_seller = None
+    last_purchase = Purchase.objects.order_by("-date").first()
+    default_date = last_purchase.date if last_purchase else datetime.now().date()
+
+    if request.method == "POST":
+        date_str = request.POST.get("date")
+        seller_id = request.POST.get("seller")
+        if date_str and seller_id:
+            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            selected_seller = get_object_or_404(Seller, pk=seller_id)
+            result = Purchase.objects.filter(
+                date=selected_date, seller=selected_seller
+            ).aggregate(total=Sum(F("quantity") * F("price")))
+            total = result["total"]
+
+    return render(request, "purchase_verification.html", {
+        "sellers": sellers,
+        "total": total,
+        "selected_date": selected_date,
+        "selected_seller": selected_seller,
+        "default_date": default_date,
+    })
 
 
 # CONSULTS

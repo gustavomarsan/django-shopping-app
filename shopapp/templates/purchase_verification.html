@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load humanize %}
+
+{% block title %}VERIFICACION{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<h1 class="px-3 py-1">VERIFICACION DE COMPRAS</h1>
+
+<div class="row px-3">
+
+    <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <input type="date" name="date" class="form-control"
+                            value="{{ selected_date|date:'Y-m-d'|default:default_date|date:'Y-m-d' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <select name="seller" class="form-control" required>
+                            <option value="">Seleccione una tienda</option>
+                            {% for seller in sellers %}
+                                <option value="{{ seller.id }}"
+                                    {% if selected_seller and selected_seller.id == seller.id %}selected{% endif %}>
+                                    {{ seller.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">Calcular</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if total is not None %}
+    <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 d-flex align-items-center">
+        <div class="card w-100">
+            <div class="card-body text-center">
+                {% if selected_seller.photo %}
+                    <img src="{{ selected_seller.photo.url }}" alt="{{ selected_seller.name }}" height="60" class="mb-2">
+                {% endif %}
+                <h5 class="card-title">{{ selected_seller.name }} &mdash; {{ selected_date|date:"d-m-Y" }}</h5>
+                <h2 class="text-success">${{ total|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+    {% elif request.method == "POST" %}
+    <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 d-flex align-items-center">
+        <div class="alert alert-warning">
+            No hay compras registradas para esa fecha y tienda.
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
