@@ -4,7 +4,7 @@ URL SHOPAPP
 
 """
 from django.urls import path
-from shopapp.views import home, article_list, article_create, article_edit, article_delete, article_purchases, seller_list, seller_create, seller_edit, seller_delete, purchase_list, purchase_create, purchase_edit, purchase_delete, consult_articles, consult_families, purchase_verification
+from shopapp.views import home, article_list, article_create, article_edit, article_delete, article_purchases, family_purchases, seller_list, seller_create, seller_edit, seller_delete, purchase_list, purchase_create, purchase_edit, purchase_delete, consult_articles, consult_families, purchase_verification
 
 
 
@@ -16,6 +16,7 @@ urlpatterns = [
     path("articles/<int:pk>/edit/", article_edit, name="article_edit"),
     path("articles/<int:pk>/delete/", article_delete, name="article_delete"),
     path("articles/<int:article_id>/purchases/", article_purchases, name="article_purchases"),
+    path("consult_prices/family/<int:family_id>/", family_purchases, name="family_purchases"),
     # ------------ SELLERS --------------
     path("sellers/", seller_list, name= "seller_list"),
     path("sellers/create/", seller_create, name="seller_create"),                     

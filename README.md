@@ -74,7 +74,8 @@ python manage.py runserver
 Then open http://127.0.0.1:8000/.
 
 `settings.py` calls `load_dotenv()`, so a `.env` file at the project root is
-picked up automatically if you add one. None is required to run the app today.
+picked up automatically. Copy `.env.example` to `.env` and set
+`DJANGO_SECRET_KEY` before running the app.
 
 ## Routes
 
@@ -85,6 +86,7 @@ picked up automatically if you add one. None is required to run the app today.
 | `/articles/<pk>/edit/` | `article_edit` | Edit an article |
 | `/articles/<pk>/delete/` | `article_delete` | Delete an article |
 | `/articles/<id>/purchases/` | `article_purchases` | Price history for a product |
+| `/consult_prices/family/<id>/` | `family_purchases` | Purchase history for a family |
 | `/sellers/` | `seller_list` | List + create sellers |
 | `/sellers/<pk>/edit/` | `seller_edit` | Edit a seller |
 | `/sellers/<pk>/delete/` | `seller_delete` | Delete a seller |
@@ -141,7 +143,8 @@ python manage.py shell
 
 - The app currently has **no authentication** — all views are open. A
   `registration/login.html` template exists but no login flow is wired up.
-- `DEBUG = True` and `SECRET_KEY` is hardcoded in `settings.py`. Move both to
-  environment variables before deploying anywhere public.
+- `DEBUG = True` and `ALLOWED_HOSTS` is empty, so configure both before
+  deploying anywhere public. `DJANGO_SECRET_KEY` is loaded from `.env` or the
+  process environment and must never be committed.
 - `MEDIA_ROOT` is the project root and uploads land in `images/`. `db.sqlite3`
   and `/media/` are gitignored.

@@ -135,6 +135,21 @@ def article_purchases(request, article_id):
         purchases = Purchase.objects.filter(article = article).order_by("-date")
         return render(request, "article_purchases.html", {"purchases": purchases, "article": article})
 
+
+def family_purchases(request, family_id):
+    family = get_object_or_404(Family, id=family_id)
+    purchases = (
+        Purchase.objects
+        .filter(article__family=family)
+        .select_related("article", "seller")
+        .order_by("-date", "-id")
+    )
+    return render(
+        request,
+        "family_purchases.html",
+        {"purchases": purchases, "family": family},
+    )
+
 # PURCHASE
 
 def purchase_list(request):

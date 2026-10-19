@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %} CONSULTA PRECIOS POR FAMILIA {% endblock %}
+
+{% block content %}
+
+<h2>Últimas compras de la familia {{ family.name }}</h2>
+<div class="row px-3">
+  <div class="col-xs-12 col-sm-12 col-lg-10">
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th class="text-center">Fecha</th>
+          <th class="text-left">Artículo</th>
+          <th class="text-right">Cantidad</th>
+          <th class="text-right">Precio U</th>
+          <th class="text-center">Nota</th>
+          <th class="text-left">Tienda</th>
+          <th class="text-center">Paquete</th>
+          <th class="text-center">Cont.</th>
+          <th class="text-center">Unidad</th>
+          <th class="text-right">$ / Unidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for purchase in purchases %}
+          <tr>
+            <td class="text-center">{{ purchase.date|date:'d-m-y' }}</td>
+            <td>
+              {% if purchase.article.photo %}
+                <img src="{{ purchase.article.photo.url }}" alt="{{ purchase.article.name }}" width="30" height="30">
+              {% endif %}
+              {{ purchase.article.name }}
+            </td>
+            <td class="text-right">{{ purchase.quantity }}</td>
+            <td class="text-right">{{ purchase.price }}</td>
+            <td class="text-center">{{ purchase.note }}</td>
+            <td>
+              {% if purchase.seller.photo %}
+                <img src="{{ purchase.seller.photo.url }}" alt="{{ purchase.seller.name }}" width="30" height="30">
+              {% endif %}
+              {{ purchase.seller.name }}
+            </td>
+            <td class="text-center">{{ purchase.article.package }}</td>
+            <td class="text-center">{{ purchase.article.quantity }}</td>
+            <td class="text-center">{{ purchase.article.unit }}</td>
+            <td class="text-right">{{ purchase.price_per_unit_with_unit }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10" class="text-center">No hay compras registradas para esta familia.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

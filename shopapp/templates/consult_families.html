@@ -24,7 +24,7 @@
           <tr>
             <td class="text-left">{{family.name}}</td>
             <td>
-              <a href="/consult_prices/family/{{family.id}}" > 
+              <a href="{% url 'family_purchases' family.id %}" >
                 <button type="button" class="btn btn-primary">Historial</button>
               </a>
             </td>
