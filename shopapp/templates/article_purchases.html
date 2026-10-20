@@ -9,6 +9,21 @@
 {% load humanize %}
 
 <h2>Ultimas compras {{ article.name }}</h2>
+<p class="lead">
+  Precio mínimo histórico:
+  {% if article.lower_price is not None %}
+    <strong>${{ article.lower_price|floatformat:2 }}</strong>
+  {% else %}
+    <strong>Sin datos</strong>
+  {% endif %}
+  <span class="mx-2">|</span>
+  Precio mediano histórico:
+  {% if article.median_price is not None %}
+    <strong>${{ article.median_price|floatformat:2 }}</strong>
+  {% else %}
+    <strong>Sin datos</strong>
+  {% endif %}
+</p>
 <div class="row px-3">
 
   <div class="col-xs-12 col-sm-6 col-md-10 col-lg-10">

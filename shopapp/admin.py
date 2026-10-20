@@ -8,7 +8,7 @@ class SellerAdmin(admin.ModelAdmin):
     list_display = ["name"]
 
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ["name", "package"]
+    list_display = ["name", "package", "price_tracking", "lower_price", "median_price"]
     list_filter = ("unit" , "package", "family")
 
 

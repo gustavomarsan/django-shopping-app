@@ -1,4 +1,4 @@
-from django.forms import ModelForm, TextInput,  NumberInput, ClearableFileInput, DateInput
+from django.forms import ModelForm, TextInput, NumberInput, ClearableFileInput, DateInput, CheckboxInput
 from shopapp.models import Article, Family, Seller, Purchase
 from django.utils.timezone import now
 from .models import Purchase
@@ -16,6 +16,7 @@ class ArticleForm(ModelForm):
             "package": "Paquete",
             "ean": "Código EAN",
             "photo": "Imagen",
+            "price_tracking": "Seguimiento de precio",
         }
         widgets = {
             "name": TextInput(attrs={"placeholder": "NOMBRE"}),
@@ -29,6 +30,10 @@ class ArticleForm(ModelForm):
 
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
+
+        self.fields["price_tracking"].widget = CheckboxInput(
+            attrs={"class": "form-check-input"}
+        )
 
         # ✅ Force placeholder for Family
         self.fields["family"].queryset = Family.objects.all().order_by("name")
