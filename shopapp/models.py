@@ -56,6 +56,23 @@ class Article(models.Model):
     null=True, blank=True)
     family = models.ForeignKey(Family, models.PROTECT)  
     photo = models.ImageField(upload_to="images/", null=True, blank=True)
+    price_tracking = models.BooleanField(default=False, verbose_name="Seguimiento de precio")
+    lower_price = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Precio mínimo histórico",
+    )
+    median_price = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Precio mediano histórico",
+    )
     
     class Meta:
         verbose_name = 'Article'
