@@ -1,5 +1,5 @@
-from django.forms import ModelForm, TextInput, NumberInput, ClearableFileInput, DateInput, CheckboxInput
-from shopapp.models import Article, Family, Seller, Purchase
+from django.forms import ModelForm, TextInput, NumberInput, ClearableFileInput, DateInput
+from shopapp.models import Article, Family, Seller, Purchase, MonitoredArticle
 from django.utils.timezone import now
 from .models import Purchase
 
@@ -16,7 +16,6 @@ class ArticleForm(ModelForm):
             "package": "Paquete",
             "ean": "Código EAN",
             "photo": "Imagen",
-            "price_tracking": "Seguimiento de precio",
         }
         widgets = {
             "name": TextInput(attrs={"placeholder": "NOMBRE"}),
@@ -31,10 +30,6 @@ class ArticleForm(ModelForm):
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
 
-        self.fields["price_tracking"].widget = CheckboxInput(
-            attrs={"class": "form-check-input"}
-        )
-
         # ✅ Force placeholder for Family
         self.fields["family"].queryset = Family.objects.all().order_by("name")
         self.fields["family"].empty_label = "Seleccione una familia"
@@ -43,6 +38,51 @@ class ArticleForm(ModelForm):
         # ✅ Unit already working
         self.fields["unit"].choices = [("", "Seleccione unidad")] + list(self.fields["unit"].choices)
         self.fields["unit"].required = True
+
+
+class MonitoredArticleForm(ModelForm):
+    class Meta:
+        model = MonitoredArticle
+        fields = ["article", "sams_url"]
+        labels = {
+            "article": "Artículo",
+            "sams_url": "URL de Sam's Club",
+        }
+        widgets = {
+            "sams_url": TextInput(attrs={"placeholder": "URL DEL PRODUCTO"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+        monitored_article_ids = MonitoredArticle.objects.values_list(
+            "article_id", flat=True
+        )
+        self.fields["article"].queryset = (
+            Article.objects.exclude(pk__in=monitored_article_ids).order_by("name")
+        )
+        self.fields["article"].empty_label = "Seleccione un artículo"
+        self.fields["sams_url"].required = True
+
+
+class MonitoredArticleURLForm(ModelForm):
+    class Meta:
+        model = MonitoredArticle
+        fields = ["sams_url"]
+        labels = {
+            "sams_url": "URL de Sam's Club",
+        }
+        widgets = {
+            "sams_url": TextInput(attrs={"placeholder": "URL DEL PRODUCTO"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["sams_url"].required = True
+        self.fields["sams_url"].widget.attrs["class"] = "form-control"
 
 
 class SellerForm(ModelForm):

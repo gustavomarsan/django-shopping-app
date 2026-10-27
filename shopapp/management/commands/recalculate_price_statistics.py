@@ -2,7 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.management.base import BaseCommand
 
-from shopapp.models import Article, Purchase
+from shopapp.models import MonitoredArticle, Purchase
 
 
 CENT = Decimal("0.01")
@@ -30,39 +30,47 @@ class Command(BaseCommand):
         parser.add_argument(
             "--tracking-only",
             action="store_true",
-            help="Recalculate only articles with price tracking enabled.",
+            help="Deprecated; all records in this command are monitored articles.",
         )
 
     def handle(self, *args, **options):
-        articles = Article.objects.all().order_by("id")
+        monitored_articles = MonitoredArticle.objects.select_related("article").order_by("article_id")
 
         if options["article_id"]:
-            articles = articles.filter(pk=options["article_id"])
-
-        if options["tracking_only"]:
-            articles = articles.filter(price_tracking=True)
+            monitored_articles = monitored_articles.filter(
+                article_id=options["article_id"]
+            )
 
         updated = 0
         empty = 0
 
-        for article in articles:
+        for monitored_article in monitored_articles:
             prices = list(
                 Purchase.objects
-                .filter(article=article)
+                .filter(article=monitored_article.article)
                 .values_list("price", flat=True)
             )
 
             if prices:
                 lower_price = min(prices).quantize(CENT, rounding=ROUND_HALF_UP)
                 median_price = median(prices).quantize(CENT, rounding=ROUND_HALF_UP)
+                latest_low_purchase = (
+                    Purchase.objects
+                    .filter(article=monitored_article.article, price=min(prices))
+                    .order_by("-date", "-id")
+                    .first()
+                )
+                lower_price_date = latest_low_purchase.date
                 updated += 1
             else:
                 lower_price = None
                 median_price = None
+                lower_price_date = None
                 empty += 1
 
-            Article.objects.filter(pk=article.pk).update(
+            MonitoredArticle.objects.filter(pk=monitored_article.pk).update(
                 lower_price=lower_price,
+                lower_price_date=lower_price_date,
                 median_price=median_price,
             )
 

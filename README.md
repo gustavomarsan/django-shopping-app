@@ -14,6 +14,10 @@ of 1.5 Lt bottles is directly comparable to a single 600 ml one.
   (`Σ quantity × price`) to check against your physical receipt
 - **Price history per article** — every purchase of a product, across all stores
 - **Consult views** — browse the full article and family catalogs
+- **Price monitoring** — select specific articles for monitoring without adding monitoring-only data to the `Article` table
+- **Monitoring statistics** — store the historical minimum price, its date, and median price for each monitored article
+- **Monitoring maintenance** — when the monitored-articles page is opened, statistics whose minimum price is older than 18 months are recalculated from recent purchase history
+- **Monitoring UI** — add, edit the Sam’s Club URL, view article images and price statistics, and delete monitored articles from the `Monitoreo` menu
 - **Photo uploads** for articles and sellers
 - **Weather widget** in the navbar — async fetch from Open-Meteo, geolocated by
   IP, refreshed by a background task and cached
@@ -35,6 +39,8 @@ of 1.5 Lt bottles is directly comparable to a single 600 ml one.
 ```
 Division → Family → Article → Purchase
                                ↳ Seller
+
+Article 1 ─── 0..1 MonitoredArticle
 ```
 
 - **Division** — top-level grouping (e.g. a Walmart division)
@@ -43,6 +49,7 @@ Division → Family → Article → Purchase
   (`Lt`/`Kg`/`Pza`/`Caja`/`Paquete`/`Rollos`), package multiplier, optional EAN
 - **Purchase** — a buy event: Article + Seller, date, quantity, price per package
 - **Seller** — a store/supermarket
+- **MonitoredArticle** — a selected article to monitor. It stores the Sam’s Club URL, historical lower price, date of the lower price, and median price. Each article can currently have at most one monitoring record.
 
 All foreign keys use `on_delete=PROTECT`, so you can't delete a store or product
 that has purchases attached to it.
@@ -87,6 +94,10 @@ picked up automatically. Copy `.env.example` to `.env` and set
 | `/articles/<pk>/delete/` | `article_delete` | Delete an article |
 | `/articles/<id>/purchases/` | `article_purchases` | Price history for a product |
 | `/consult_prices/family/<id>/` | `family_purchases` | Purchase history for a family |
+| `/monitored-articles/` | `monitored_article_list` | List and add monitored articles |
+| `/monitored-articles/create/` | `monitored_article_create` | Create a monitoring record |
+| `/monitored-articles/<pk>/edit/` | `monitored_article_edit` | Update the Sam’s Club URL |
+| `/monitored-articles/<pk>/delete/` | `monitored_article_delete` | Delete a monitoring record |
 | `/sellers/` | `seller_list` | List + create sellers |
 | `/sellers/<pk>/edit/` | `seller_edit` | Edit a seller |
 | `/sellers/<pk>/delete/` | `seller_delete` | Delete a seller |
@@ -99,6 +110,9 @@ picked up automatically. Copy `.env.example` to `.env` and set
 | `/consult_families/` | `consult_familes` | Family catalog |
 | `/admin/` | — | Django admin |
 
+The `Monitoreo → Buscar ahora` menu item is currently a placeholder for the
+future price-search process.
+
 ## Project Layout
 
 ```
@@ -110,16 +124,18 @@ shop/
 │   ├── urls.py
 │   └── wsgi.py
 └── shopapp/                     # All application logic
-    ├── models.py                # Division, Family, Seller, Article, Purchase
-    ├── views.py                 # 19 function-based views
-    ├── forms.py                 # ArticleForm, SellerForm, PurchaseForm
+    ├── models.py                # Division, Family, Seller, Article, Purchase, MonitoredArticle
+    ├── views.py                 # Catalog, reports, and monitoring views
+    ├── forms.py                 # Catalog, purchase, and monitoring forms
     ├── urls.py
+    ├── management/commands/
+    │   └── recalculate_price_statistics.py
     ├── context_processors.py    # Injects `weather` into every template
     ├── apps.py                  # Starts the weather refresh background task
     ├── services/
     │   ├── weather_service.py   # Open-Meteo, 10-min cache, code → emoji
     │   └── location_service.py  # ipapi.co, 24-h cache, falls back to Zapopan, MX
-    └── templates/
+    └── templates/               # Includes monitoring list and edit templates
 ```
 
 ## Development
@@ -148,3 +164,22 @@ python manage.py shell
   process environment and must never be committed.
 - `MEDIA_ROOT` is the project root and uploads land in `images/`. `db.sqlite3`
   and `/media/` are gitignored.
+- Monitoring data is kept in the separate `MonitoredArticle` table. The migration moved the previously tracked articles and their existing statistics out of `Article`.
+- Previously migrated monitoring records may have an empty Sam’s Club URL; it can be completed from `Monitoreo → Artículos Monitoreados`.
+
+## Price statistics
+
+The monitoring list automatically checks each monitored article when the page is
+opened. If its `lower_price_date` is missing or is older than 18 months, the
+application recalculates:
+
+- `lower_price`: the lowest purchase price in the recent history window;
+- `lower_price_date`: the most recent purchase date when the minimum price occurred;
+- `median_price`: the median of the purchase prices in that window.
+
+For exceptional or manual recalculation, use:
+
+```bash
+python manage.py recalculate_price_statistics
+python manage.py recalculate_price_statistics --article-id <article_id>
+```

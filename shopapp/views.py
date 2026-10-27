@@ -1,12 +1,77 @@
 from django.shortcuts import render
 from django.contrib import messages
+from calendar import monthrange
 from datetime import time, datetime
 from datetime import datetime
-from shopapp.models import Seller, Article, units, Purchase, Division, Family
-from shopapp.forms import ArticleForm, SellerForm, PurchaseForm
+from decimal import Decimal, ROUND_HALF_UP
+from shopapp.models import Seller, Article, units, Purchase, Division, Family, MonitoredArticle
+from shopapp.forms import ArticleForm, SellerForm, PurchaseForm, MonitoredArticleForm, MonitoredArticleURLForm
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.db.models import Sum, F
+from django.utils import timezone
+
+
+PRICE_HISTORY_MONTHS = 18
+PRICE_CENT = Decimal("0.01")
+
+
+def months_before(value, months):
+    month_index = value.year * 12 + value.month - 1 - months
+    year, month_index = divmod(month_index, 12)
+    month = month_index + 1
+    day = min(value.day, monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)
+
+
+def refresh_stale_monitoring_statistics(monitored_articles):
+    cutoff_date = months_before(timezone.localdate(), PRICE_HISTORY_MONTHS)
+
+    for monitored_article in monitored_articles:
+        if (
+            monitored_article.lower_price_date is None
+            or monitored_article.lower_price_date < cutoff_date
+        ):
+            prices = list(
+                Purchase.objects
+                .filter(article=monitored_article.article, date__gte=cutoff_date)
+                .values_list("price", flat=True)
+            )
+
+            if prices:
+                prices.sort()
+                middle = len(prices) // 2
+                if len(prices) % 2:
+                    median_price = prices[middle]
+                else:
+                    median_price = (prices[middle - 1] + prices[middle]) / 2
+
+                lowest_price = prices[0]
+                lowest_purchase = (
+                    Purchase.objects
+                    .filter(
+                        article=monitored_article.article,
+                        date__gte=cutoff_date,
+                        price=lowest_price,
+                    )
+                    .order_by("-date", "-id")
+                    .first()
+                )
+                monitored_article.lower_price = lowest_price.quantize(
+                    PRICE_CENT, rounding=ROUND_HALF_UP
+                )
+                monitored_article.lower_price_date = lowest_purchase.date
+                monitored_article.median_price = median_price.quantize(
+                    PRICE_CENT, rounding=ROUND_HALF_UP
+                )
+            else:
+                monitored_article.lower_price = None
+                monitored_article.lower_price_date = None
+                monitored_article.median_price = None
+
+            monitored_article.save(
+                update_fields=["lower_price", "lower_price_date", "median_price"]
+            )
 
 # Create your views here.
 
@@ -243,6 +308,61 @@ def consult_articles(request):
 def consult_families(request):
     articles_list = Family.objects.order_by("name")
     return render(request, "consult_families.html", {"families": articles_list})
+
+
+# MONITORING
+
+def monitored_article_list(request):
+    monitored_articles = list(
+        MonitoredArticle.objects
+        .select_related("article")
+        .order_by("article__name")
+    )
+    refresh_stale_monitoring_statistics(monitored_articles)
+    form = MonitoredArticleForm()
+    return render(
+        request,
+        "monitored_articles.html",
+        {"monitored_articles": monitored_articles, "form": form},
+    )
+
+
+@require_POST
+def monitored_article_create(request):
+    form = MonitoredArticleForm(request.POST)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Artículo agregado al monitoreo correctamente")
+    else:
+        messages.error(request, "Error al agregar el artículo al monitoreo")
+    return redirect("monitored_article_list")
+
+
+def monitored_article_edit(request, pk):
+    monitored_article = get_object_or_404(MonitoredArticle, pk=pk)
+
+    if request.method == "POST":
+        form = MonitoredArticleURLForm(request.POST, instance=monitored_article)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "URL del artículo monitoreado se ha actualizado correctamente")
+            return redirect("monitored_article_list")
+    else:
+        form = MonitoredArticleURLForm(instance=monitored_article)
+
+    return render(
+        request,
+        "edit_monitored_article.html",
+        {"form": form, "monitored_article": monitored_article},
+    )
+
+
+@require_POST
+def monitored_article_delete(request, pk):
+    monitored_article = get_object_or_404(MonitoredArticle, pk=pk)
+    monitored_article.delete()
+    messages.success(request, "Artículo eliminado del monitoreo correctamente")
+    return redirect("monitored_article_list")
 
 
 

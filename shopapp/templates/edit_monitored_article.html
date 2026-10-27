@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %} EDITAR MONITOREO {% endblock %}
+
+{% block content %}
+
+<h1 class="px-3 py-1">EDITAR ARTÍCULO MONITOREADO</h1>
+
+<div class="row px-3">
+    <div class="col-sm-12 col-md-6 col-lg-5">
+        <h2>{{ monitored_article.article.name }}</h2>
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success btn-block text-white">
+                        Guardar cambios
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-6 col-lg-7 text-center">
+        <a href="{% url 'monitored_article_list' %}" class="btn btn-primary mb-3">
+            Regresar
+        </a>
+
+        {% if monitored_article.article.photo %}
+            <img
+                src="{{ monitored_article.article.photo.url }}"
+                class="img-fluid rounded"
+                width="500"
+                height="500"
+                alt="Imagen del artículo"
+            >
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

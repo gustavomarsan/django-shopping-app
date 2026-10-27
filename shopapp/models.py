@@ -56,7 +56,18 @@ class Article(models.Model):
     null=True, blank=True)
     family = models.ForeignKey(Family, models.PROTECT)  
     photo = models.ImageField(upload_to="images/", null=True, blank=True)
-    price_tracking = models.BooleanField(default=False, verbose_name="Seguimiento de precio")
+    
+    class Meta:
+        verbose_name = 'Article'
+        verbose_name_plural = 'Articles'
+
+    def __str__(self) :
+        return self.name
+
+
+class MonitoredArticle(models.Model):
+    article = models.ForeignKey(Article, models.PROTECT)
+    sams_url = models.URLField(blank=True, verbose_name="URL de Sam's Club")
     lower_price = models.DecimalField(
         max_digits=7,
         decimal_places=2,
@@ -64,6 +75,12 @@ class Article(models.Model):
         blank=True,
         editable=False,
         verbose_name="Precio mínimo histórico",
+    )
+    lower_price_date = models.DateField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Fecha del precio mínimo",
     )
     median_price = models.DecimalField(
         max_digits=7,
@@ -73,13 +90,19 @@ class Article(models.Model):
         editable=False,
         verbose_name="Precio mediano histórico",
     )
-    
-    class Meta:
-        verbose_name = 'Article'
-        verbose_name_plural = 'Articles'
 
-    def __str__(self) :
-        return self.name
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["article"],
+                name="unique_monitored_article",
+            )
+        ]
+        verbose_name = "Monitored article"
+        verbose_name_plural = "Monitored articles"
+
+    def __str__(self):
+        return self.article.name
     
 class Purchase(models.Model) :
     date = models.DateField(default=timezone.now)
