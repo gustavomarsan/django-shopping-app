@@ -1,3 +1,17 @@
+from io import BytesIO
+from statistics import median
+from xml.sax.saxutils import escape
+
+from PIL import Image as PILImage
+from PIL import ImageOps
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib import messages
 from calendar import monthrange
@@ -308,6 +322,134 @@ def consult_articles(request):
 def consult_families(request):
     articles_list = Family.objects.order_by("name")
     return render(request, "consult_families.html", {"families": articles_list})
+
+
+def price_report_pdf(request):
+    """Download article price statistics for purchases from the last 18 months."""
+    today = timezone.localdate()
+    cutoff_date = months_before(today, PRICE_HISTORY_MONTHS)
+    report_date = today.strftime("%d%m%y")
+    purchases = (
+        Purchase.objects
+        .filter(date__gte=cutoff_date, date__lte=today)
+        .select_related("article")
+        .order_by("article__name", "date", "id")
+    )
+
+    article_prices = {}
+    for purchase in purchases:
+        article_prices.setdefault(purchase.article, []).append(purchase.price)
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "ReportTitle",
+        parent=styles["Title"],
+        alignment=TA_CENTER,
+        fontSize=16,
+        spaceAfter=8,
+    )
+    body_style = ParagraphStyle(
+        "ReportBody",
+        parent=styles["BodyText"],
+        fontSize=9,
+        leading=11,
+    )
+    header_style = ParagraphStyle(
+        "ReportHeader",
+        parent=body_style,
+        textColor=colors.white,
+        fontName="Helvetica-Bold",
+    )
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="reporte_precios_{report_date}.pdf"'
+    )
+    document = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        rightMargin=18 * mm,
+        leftMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+
+    report = [
+        Paragraph(f"Reporte de precios {report_date}", title_style),
+        Paragraph(
+            f"Artículos con compras del {cutoff_date:%d/%m/%Y} al {today:%d/%m/%Y}",
+            body_style,
+        ),
+        Spacer(1, 8),
+    ]
+
+    table_data = [[
+        Paragraph("Imagen", header_style),
+        Paragraph("Artículo", header_style),
+        Paragraph("Precio mínimo", header_style),
+        Paragraph("Precio mediano", header_style),
+    ]]
+
+    for article in sorted(article_prices, key=lambda item: item.name.casefold()):
+        prices = article_prices[article]
+        table_data.append([
+            _article_report_image(article),
+            Paragraph(escape(article.name), body_style),
+            Paragraph(f"${min(prices):,.2f}", body_style),
+            Paragraph(f"${median(prices):,.2f}", body_style),
+        ])
+
+    if len(table_data) == 1:
+        table_data.append([
+            "",
+            Paragraph("No hay compras registradas en los últimos 18 meses.", body_style),
+            "",
+            "",
+        ])
+
+    table = Table(table_data, colWidths=[25 * mm, 80 * mm, 34 * mm, 34 * mm], repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#343a40")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#ced4da")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    report.append(table)
+    document.build(report)
+    return response
+
+
+def _article_report_image(article):
+    if not article.photo:
+        return Paragraph("Sin imagen", getSampleStyleSheet()["BodyText"])
+
+    try:
+        with article.photo.open("rb") as uploaded_file:
+            image = ImageOps.exif_transpose(PILImage.open(uploaded_file))
+            image.thumbnail((300, 300), PILImage.LANCZOS)
+            image = image.convert("RGB")
+            image_buffer = BytesIO()
+            image.save(image_buffer, format="JPEG")
+            image_buffer.seek(0)
+            max_display_size = 22 * mm
+            display_scale = min(
+                max_display_size / image.width,
+                max_display_size / image.height,
+            )
+            report_image = Image(
+                image_buffer,
+                width=image.width * display_scale,
+                height=image.height * display_scale,
+            )
+            report_image.hAlign = "CENTER"
+            return report_image
+    except (OSError, ValueError):
+        return Paragraph("Sin imagen", getSampleStyleSheet()["BodyText"])
 
 
 # MONITORING
