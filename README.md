@@ -14,6 +14,8 @@ of 1.5 Lt bottles is directly comparable to a single 600 ml one.
   (`Σ quantity × price`) to check against your physical receipt
 - **Price history per article** — every purchase of a product, across all stores
 - **Consult views** — browse the full article and family catalogs
+- **PDF price report** — download an alphabetized report of articles purchased
+  in the last 18 months, including images, minimum prices, and median prices
 - **Price monitoring** — select specific articles for monitoring without adding monitoring-only data to the `Article` table
 - **Monitoring statistics** — store the historical minimum price, its date, and median price for each monitored article
 - **Monitoring maintenance** — when the monitored-articles page is opened, statistics whose minimum price is older than 18 months are recalculated from recent purchase history
@@ -108,6 +110,7 @@ picked up automatically. Copy `.env.example` to `.env` and set
 | `/purchases/verification/` | `purchase_verification` | Total by date + store |
 | `/consult_articles/` | `consult_articles` | Article catalog |
 | `/consult_families/` | `consult_familes` | Family catalog |
+| `/consultas/reporte-pdf/` | `price_report_pdf` | Download the 18-month price report |
 | `/admin/` | — | Django admin |
 
 The `Monitoreo → Buscar ahora` menu item is currently a placeholder for the
